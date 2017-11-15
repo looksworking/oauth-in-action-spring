@@ -6,10 +6,10 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Scope;
 
 @SpringBootApplication
-public class Oauth2InActionClientApplication {
+public class ClientApplication {
 
 	public static void main(String[] args) {
-		SpringApplication.run(Oauth2InActionClientApplication.class, args);
+		SpringApplication.run(ClientApplication.class, args);
 	}
 
 	@Bean

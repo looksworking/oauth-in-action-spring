@@ -23,10 +23,7 @@ import org.springframework.web.bind.annotation.RequestMethod;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
+import java.io.*;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
@@ -57,7 +54,6 @@ public class OAuthClientController {
 
     @RequestMapping(path = "/authorize", method = RequestMethod.GET)
     public String authorize(Model model) throws URISyntaxException {
-        model.addAttribute("name", "!@#");
 
         modelVars.setState(UUID.randomUUID().toString());
         logger.info("Set state to {}", modelVars.getState());
@@ -83,24 +79,9 @@ public class OAuthClientController {
         String code = request.getParameter("code");
         logger.info("Received code: {}", code);
         this.modelVars.setCode(code);
-        URIBuilder postBuilder = new URIBuilder(environment.getProperty("authServer.tokenEndpoint"));
-        URI tokenUrl = postBuilder.addParameter("grant_type", "authorization_code")
-                .addParameter("code", code)
-                .addParameter("redirect_uri", environment.getProperty("client.redirect_uris")).build();
 
+        HttpPost httpPost = getHttpPostForGrantType("authorization_code");
         CloseableHttpClient client = HttpClients.createDefault();
-        HttpPost httpPost = new HttpPost(tokenUrl);
-        UsernamePasswordCredentials creds = new UsernamePasswordCredentials(
-                environment.getProperty("client.client_id"),
-                environment.getProperty("client.client_secret"));
-        httpPost.addHeader(new BasicScheme().authenticate(creds, httpPost, null));
-
-        List<NameValuePair> params = new ArrayList<NameValuePair>();
-        params.add(new BasicNameValuePair("grant_type", "authorization_code"));
-        params.add(new BasicNameValuePair("code", code));
-        params.add(new BasicNameValuePair("redirect_uri", environment.getProperty("client.redirect_uris")));
-        httpPost.setEntity(new UrlEncodedFormEntity(params));
-
 
         logger.info("Sending form data: {}", httpPost.toString());
 
@@ -108,27 +89,38 @@ public class OAuthClientController {
 
         logger.info("Got response status: {}", tokenResponse.getStatusLine().getStatusCode());
 
+        TokenResponseJson tokenResponseJson = getTokenResponseJson(tokenResponse);
+
+        fillVars(tokenResponseJson);
+        fillModel(model);
+        return "index";
+    }
+
+    private void fillVars(TokenResponseJson tokenResponseJson) {
+        this.modelVars.setToken(tokenResponseJson.getAccess_token());
+        this.modelVars.setScope(tokenResponseJson.getScope());
+        this.modelVars.setTokenType(tokenResponseJson.getToken_type());
+        this.modelVars.setRefreshToken(tokenResponseJson.getRefresh_token());
+    }
+
+    private TokenResponseJson getTokenResponseJson(CloseableHttpResponse tokenResponse) throws IOException {
+
         InputStream inputStream = tokenResponse.getEntity().getContent();
 
         String responseBody;
         try (BufferedReader br = new BufferedReader(new InputStreamReader(inputStream))) {
             responseBody = br.lines().collect(Collectors.joining("\n"));
         }
-
+        logger.info("Got response body: {}", responseBody);
         Gson gson = new Gson();
         TokenResponseJson tokenResponseJson = gson.fromJson(responseBody, TokenResponseJson.class);
-        this.modelVars.setToken(tokenResponseJson.getAccess_token());
-        this.modelVars.setScope(tokenResponseJson.getScope());
-        this.modelVars.setTokenType(tokenResponseJson.getToken_type());
 
-        logger.info("Got response body: {}", responseBody);
-
-        fillModel(model);
-        return "index";
+        return tokenResponseJson;
     }
 
+
     @RequestMapping(path = "/fetch_resource", method = RequestMethod.GET)
-    public String fetch(Model model) throws URISyntaxException, IOException {
+    public String fetch(Model model) throws URISyntaxException, IOException, AuthenticationException {
 
         URI resourceUrl = new URIBuilder(environment.getProperty("protectedResource")).build();
         CloseableHttpClient client = HttpClients.createDefault();
@@ -137,27 +129,67 @@ public class OAuthClientController {
 
         CloseableHttpResponse resourceResponse = client.execute(httpPost);
 
-        logger.info("Resource status code: {}", resourceResponse.getStatusLine().getStatusCode());
+        int status = resourceResponse.getStatusLine().getStatusCode();
 
-        InputStream inputStream = resourceResponse.getEntity().getContent();
+        logger.info("Resource status code: {}", status);
 
-        String responseBody;
-        try (BufferedReader br = new BufferedReader(new InputStreamReader(inputStream))) {
-            responseBody = br.lines().collect(Collectors.joining("\n"));
+        String responseBody =  null;
+        if (status >=200 &&  status < 300) {
+            InputStream inputStream = resourceResponse.getEntity().getContent();
+
+
+            try (BufferedReader br = new BufferedReader(new InputStreamReader(inputStream))) {
+                responseBody = br.lines().collect(Collectors.joining("\n"));
+            }
+            this.modelVars.setResource(responseBody);
+
+            fillModel(model);
+
+        } else {
+            this.modelVars.setToken(null);
+            if (this.modelVars.getRefreshToken() != null) {
+                TokenResponseJson tokenResponseJson = refreshToken();
+                fillVars(tokenResponseJson);
+                fillModel(model);
+                return "redirect:/fetch_resource";
+            }
         }
 
-        this.modelVars.setResource(responseBody);
-
-        fillModel(model);
         return "index";
     }
 
-    private void fillModel(Model model) {
+    private TokenResponseJson refreshToken() throws AuthenticationException, IOException, URISyntaxException {
+        HttpPost httpPost = getHttpPostForGrantType("refresh_token");
+        CloseableHttpClient client = HttpClients.createDefault();
+        CloseableHttpResponse resourceResponse = client.execute(httpPost);
+        TokenResponseJson tokenResponseJson = getTokenResponseJson(resourceResponse);
+        return tokenResponseJson;
+    }
+
+    private HttpPost getHttpPostForGrantType(String grantType) throws URISyntaxException, AuthenticationException, UnsupportedEncodingException {
+        URIBuilder postBuilder = new URIBuilder(environment.getProperty("authServer.tokenEndpoint"));
+        HttpPost httpPost = new HttpPost(postBuilder.build());
+        UsernamePasswordCredentials credentials = new UsernamePasswordCredentials(
+                environment.getProperty("client.client_id"),
+                environment.getProperty("client.client_secret"));
+        httpPost.addHeader(new BasicScheme().authenticate(credentials, httpPost, null));
+
+        List<NameValuePair> params = new ArrayList<>();
+        params.add(new BasicNameValuePair("grant_type", grantType));
+        params.add(new BasicNameValuePair("code", this.modelVars.getCode()));
+        params.add(new BasicNameValuePair("redirect_uri", environment.getProperty("client.redirect_uris")));
+        httpPost.setEntity(new UrlEncodedFormEntity(params));
+        return httpPost;
+    }
+
+   private void fillModel(Model model) {
         model.addAttribute("token", modelVars.getToken() == null ? "empty" : modelVars.getToken());
         model.addAttribute("scope", modelVars.getScope() == null ? "empty" : modelVars.getScope());
         model.addAttribute("state", modelVars.getState() == null ? "empty" : modelVars.getState());
         model.addAttribute("code", modelVars.getCode() == null ? "empty" : modelVars.getCode());
         model.addAttribute("resource", modelVars.getResource() == null ? "empty" : modelVars.getResource());
         model.addAttribute("tokenType", modelVars.getTokenType() == null ? "empty" : modelVars.getTokenType());
+        model.addAttribute("refreshToken", modelVars.getRefreshToken() == null ? "empty" : modelVars.getRefreshToken());
     }
+
 }
