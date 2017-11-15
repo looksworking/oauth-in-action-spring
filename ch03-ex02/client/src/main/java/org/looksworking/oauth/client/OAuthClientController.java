@@ -96,29 +96,6 @@ public class OAuthClientController {
         return "index";
     }
 
-    private void fillVars(TokenResponseJson tokenResponseJson) {
-        this.modelVars.setToken(tokenResponseJson.getAccess_token());
-        this.modelVars.setScope(tokenResponseJson.getScope());
-        this.modelVars.setTokenType(tokenResponseJson.getToken_type());
-        this.modelVars.setRefreshToken(tokenResponseJson.getRefresh_token());
-    }
-
-    private TokenResponseJson getTokenResponseJson(CloseableHttpResponse tokenResponse) throws IOException {
-
-        InputStream inputStream = tokenResponse.getEntity().getContent();
-
-        String responseBody;
-        try (BufferedReader br = new BufferedReader(new InputStreamReader(inputStream))) {
-            responseBody = br.lines().collect(Collectors.joining("\n"));
-        }
-        logger.info("Got response body: {}", responseBody);
-        Gson gson = new Gson();
-        TokenResponseJson tokenResponseJson = gson.fromJson(responseBody, TokenResponseJson.class);
-
-        return tokenResponseJson;
-    }
-
-
     @RequestMapping(path = "/fetch_resource", method = RequestMethod.GET)
     public String fetch(Model model) throws URISyntaxException, IOException, AuthenticationException {
 
@@ -133,8 +110,8 @@ public class OAuthClientController {
 
         logger.info("Resource status code: {}", status);
 
-        String responseBody =  null;
-        if (status >=200 &&  status < 300) {
+        String responseBody = null;
+        if (status >= 200 && status < 300) {
             InputStream inputStream = resourceResponse.getEntity().getContent();
 
 
@@ -156,6 +133,27 @@ public class OAuthClientController {
         }
 
         return "index";
+    }
+
+    private void fillVars(TokenResponseJson tokenResponseJson) {
+        this.modelVars.setToken(tokenResponseJson.getAccess_token());
+        this.modelVars.setScope(tokenResponseJson.getScope());
+        this.modelVars.setTokenType(tokenResponseJson.getToken_type());
+        this.modelVars.setRefreshToken(tokenResponseJson.getRefresh_token());
+    }
+
+    private TokenResponseJson getTokenResponseJson(CloseableHttpResponse tokenResponse) throws IOException {
+        InputStream inputStream = tokenResponse.getEntity().getContent();
+
+        String responseBody;
+        try (BufferedReader br = new BufferedReader(new InputStreamReader(inputStream))) {
+            responseBody = br.lines().collect(Collectors.joining("\n"));
+        }
+        logger.info("Got response body: {}", responseBody);
+        Gson gson = new Gson();
+        TokenResponseJson tokenResponseJson = gson.fromJson(responseBody, TokenResponseJson.class);
+
+        return tokenResponseJson;
     }
 
     private TokenResponseJson refreshToken() throws AuthenticationException, IOException, URISyntaxException {
@@ -182,7 +180,7 @@ public class OAuthClientController {
         return httpPost;
     }
 
-   private void fillModel(Model model) {
+    private void fillModel(Model model) {
         model.addAttribute("token", modelVars.getToken() == null ? "empty" : modelVars.getToken());
         model.addAttribute("scope", modelVars.getScope() == null ? "empty" : modelVars.getScope());
         model.addAttribute("state", modelVars.getState() == null ? "empty" : modelVars.getState());
