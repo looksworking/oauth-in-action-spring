@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <title>OAuth2 client</title>
+</head>
+<body>
+
+<p th:text="'Token: ' + ${token}" />
+<p th:text="'Scope: ' + ${scope}" />
+<p th:text="'State: ' + ${state}" />
+<p th:text="'Code: ' + ${code}" />
+<p th:text="'Resource: ' + ${resource}" />
+<p th:text="'Token type: ' + ${tokenType}" />
+
+<a href="/authorize">Authorize</a>
+<a href="/fetch_resource">Fetch resource</a>
+</body>
+</html>
