@@ -3,5 +3,6 @@
 *.class
 *.iws
 *.ipr
-
+**/*.jar
+**/*.class
 
