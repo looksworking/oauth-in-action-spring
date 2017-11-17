@@ -1,0 +1,28 @@
+spring:
+  datasource:
+    driver-class-name: org.h2.Driver
+    url: jdbc:h2:mem:testdb
+    username: sa
+
+  h2:
+    console:
+      enabled: true
+      path: /h2console
+
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+
+clients:
+  clientList:
+    -
+      client-id: oauth-client-1
+      client_secret: oauth-client-secret-1
+      redirect_uris:
+        - http://localhost:9000/callback
+        - http://localhost:8090/callback
+    -
+      client-id: oauth-client-2
+      client_secret: oauth-client-secret-2
+      redirect_uris:
+        - http://localhost:9900/callback
+        - http://localhost:8890/callback
