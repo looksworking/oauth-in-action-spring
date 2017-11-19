@@ -1,1 +1,1 @@
-Exercises from Manning Publications book [OAuth 2 in Action](https://www.manning.com/books/oauth-2-in-action), written originally in node.js, rewritten in Java and Spring Framework.
+Exercises from Manning Publications book [OAuth 2 in Action](https://www.manning.com/books/oauth-2-in-action) by Justin Richer and Antonio Sanso. Exercises are originally written in node.js, here rewritten in Java and Spring Framework.
