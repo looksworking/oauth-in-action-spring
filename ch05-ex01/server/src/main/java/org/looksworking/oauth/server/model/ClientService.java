@@ -1,4 +1,4 @@
-package org.looksworking.oauth.server.org.looksworking.oauth.server.model;
+package org.looksworking.oauth.server.model;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.properties.ConfigurationProperties;

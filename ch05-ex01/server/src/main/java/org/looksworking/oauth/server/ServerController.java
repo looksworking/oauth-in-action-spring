@@ -1,7 +1,6 @@
 package org.looksworking.oauth.server;
 
-import com.google.gson.Gson;
-import org.looksworking.oauth.server.org.looksworking.oauth.server.model.*;
+import org.looksworking.oauth.server.model.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,7 +12,6 @@ import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
-import sun.misc.BASE64Decoder;
 
 import javax.annotation.PostConstruct;
 import javax.servlet.http.HttpServletRequest;
@@ -73,7 +71,7 @@ public class ServerController {
             return forbid(response);
         }
 
-        if (!response_type.equals("code")){
+        if (!response_type.equals("code")) {
             forbid(response);
         }
 
@@ -101,7 +99,7 @@ public class ServerController {
 
         RequestEntity requestEntity = requestRepository.findOne(UUID.fromString(approvalFrom.getId()));
 
-        if (requestEntity == null){
+        if (requestEntity == null) {
             return forbid(response);
         }
 
@@ -112,8 +110,8 @@ public class ServerController {
 
         logger.info("reqid: {}", approvalFrom.getId());
 
-        return "redirect:"+requestEntity.getRedirectUri()+"?state="+requestEntity.getState()
-                + "&code="+codeEntity.getId().toString();
+        return "redirect:" + requestEntity.getRedirectUri() + "?state=" + requestEntity.getState()
+                + "&code=" + codeEntity.getId().toString();
     }
 
     @RequestMapping(path = "/approve", params = "deny", method = RequestMethod.POST)
@@ -124,39 +122,39 @@ public class ServerController {
     }
 
     @RequestMapping(path = "/token", method = RequestMethod.POST)
-    public ResponseEntity<Object> token(HttpServletRequest request, HttpServletResponse response){
+    public ResponseEntity<Object> token(HttpServletRequest request, HttpServletResponse response) {
 
         String encodedCredentials = request.getHeader("Authorization").substring(6);
-        if (encodedCredentials==null){
+        if (encodedCredentials == null) {
 //            return forbid(response);
         }
         String decodedCredentials = new String(Base64.getDecoder().decode(encodedCredentials));
-        String clientId = decodedCredentials.substring(0,decodedCredentials.indexOf(":"));
-        String clientSecret = decodedCredentials.substring(decodedCredentials.indexOf(":")+1);
-        if (decodedCredentials==null || clientId==null || clientSecret==null){
+        String clientId = decodedCredentials.substring(0, decodedCredentials.indexOf(":"));
+        String clientSecret = decodedCredentials.substring(decodedCredentials.indexOf(":") + 1);
+        if (decodedCredentials == null || clientId == null || clientSecret == null) {
 //            return forbid(response);
         }
         logger.info("log: {} pass: {}", clientId, clientSecret);
 
         ClientEntity clientEntity = clientRepository.findClientEntityByClientId(clientId);
-        if (clientEntity == null || !clientEntity.getClientSecret().equals(clientSecret)){
+        if (clientEntity == null || !clientEntity.getClientSecret().equals(clientSecret)) {
 //            forbid(response);
         }
 
         Enumeration<String> parameterNames = request.getParameterNames();
-        while (parameterNames.hasMoreElements()){
+        while (parameterNames.hasMoreElements()) {
             logger.info(parameterNames.nextElement());
         }
 
         String grant_type = request.getParameter("grant_type");
         String code = request.getParameter("code");
-        if (grant_type == null || grant_type.equals("authorization_code") || code == null){
+        if (grant_type == null || grant_type.equals("authorization_code") || code == null) {
             forbid(response);
         }
 
         CodeEntity codeEntity = codeRepository.findOne(UUID.fromString(code));
 
-        if (codeEntity != null){
+        if (codeEntity != null) {
             codeRepository.delete(codeEntity);
         } else {
             forbid(response);
@@ -173,7 +171,7 @@ public class ServerController {
         return "error";
     }
 
-    protected ResponseEntity<Object> forbid(){
+    protected ResponseEntity<Object> forbid() {
         return new ResponseEntity<Object>("FORBIDDEN", HttpStatus.FORBIDDEN);
     }
 }

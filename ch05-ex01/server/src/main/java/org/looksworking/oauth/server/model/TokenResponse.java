@@ -1,4 +1,4 @@
-package org.looksworking.oauth.server.org.looksworking.oauth.server.model;
+package org.looksworking.oauth.server.model;
 
 public class TokenResponse {
 
