@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <title>Clients</title>
+</head>
+<body>
+<div th:if="${clients != null}">
+    <h1>Clients</h1>
+    <ul>
+        <th:block th:object="${clients}">
+            <li th:each="ClientEntity : ${clients}" th:text="${ClientEntity}"></li>
+        </th:block>
+    </ul>
+</div>
+</body>
+</html>
