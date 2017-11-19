@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <title>Approve this client?</title>
+</head>
+<body>
+Client info:<br/>
+Client_id: <span th:text="${request.clientId}">client-id</span><br/>
+Requested_scope: <span th:text="${request.scope}">scope</span><br/>
+Redirect_URI: <span th:text="${request.redirectUri}">redirect</span><br/>
+
+<form action="#" th:action="@{/approve}" method="post" modelAttribute="approval">
+    <input hidden="true" type="text" th:field="${request.id}"/>
+    <p><input type="submit" value="Approve" name="approve"/> <input type="submit" value="Deny" name="deny"/></p>
+</form>
+</body>
+</html>
